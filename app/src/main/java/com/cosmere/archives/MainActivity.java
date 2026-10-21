@@ -79,7 +79,7 @@ public class MainActivity extends Activity {
     private void checkForUpdates() {
         new Thread(() -> {
             try {
-                URL u = new URL("https://api.github.com/repos/cosmerearchives-creator/Mind-map-releases/releases?per_page=10");
+                URL u = new URL("https://api.github.com/repos/cosmerearchives-creator/eBook-research/releases?per_page=10");
                 HttpURLConnection c = (HttpURLConnection) u.openConnection();
                 c.setConnectTimeout(8000);
                 c.setReadTimeout(8000);
