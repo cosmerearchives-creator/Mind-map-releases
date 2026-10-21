@@ -11,6 +11,7 @@ import org.json.JSONObject;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import android.content.Intent;
 import android.net.Uri;
@@ -87,9 +88,9 @@ public class MainActivity extends Activity {
                 try {
                     if (c.getResponseCode() != 200) return;
                     byte[] bytes;
-                    try (InputStream stream = c.getInputStream()) { bytes = stream.readAllBytes(); }
+                    try (InputStream stream = c.getInputStream(); ByteArrayOutputStream buf = new ByteArrayOutputStream()) { byte[] part = new byte[8192]; int n; while ((n = stream.read(part)) != -1) buf.write(part, 0, n); bytes = buf.toByteArray(); }
                     JSONArray releases = new JSONArray(new String(bytes, StandardCharsets.UTF_8));
-                    int installed = (int) getPackageManager().getPackageInfo(getPackageName(), 0).getLongVersionCode();
+                    int installed = (int) getPackageManager().getPackageInfo(getPackageName(), 0).versionCode;
                     int newest = installed;
                     String link = null;
                     for (int i = 0; i < releases.length(); i++) {
