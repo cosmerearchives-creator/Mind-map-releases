@@ -20,10 +20,29 @@ jobs:
           gradle-version: '8.11.1'
       - name: Install SDK
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
-      - name: Compile APK
-        run: gradle --no-daemon :app:assembleDebug
-      - name: Copy named APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk The-Cosmere-Archives.apk
+      - name: Restore private release keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          test -n "$KEYSTORE_B64" && test -n "$STORE_PASSWORD" && test -n "$KEY_PASSWORD" && test -n "$KEY_ALIAS"
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/cosmere-release.jks"
+          keytool -list -keystore "$RUNNER_TEMP/cosmere-release.jks" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
+          echo "ANDROID_SIGNING_KEYSTORE=$RUNNER_TEMP/cosmere-release.jks" >> "$GITHUB_ENV"
+      - name: Compile signed release APK
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: gradle --no-daemon :app:assembleRelease
+      - name: Verify signature and prepare APK
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          test -f "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK"
+          cp "$APK" The-Cosmere-Archives.apk
       - uses: actions/upload-artifact@v4
         with:
           name: The-Cosmere-Archives-Android
@@ -34,6 +53,6 @@ jobs:
         run: |
           gh release create "android-build-${{ github.run_number }}" The-Cosmere-Archives.apk \
             --title "The Cosmere Archives v0.11.${{ github.run_number }}" \
-            --notes "Test APK with update checking. This build uses ephemeral debug signing. Updates may require uninstalling the previous APK until permanent signing is configured. Back up research before replacing the app." \
+            --notes "Signed release APK with update checking. The first transition from an old debug build may require uninstalling the debug app. Back up your research before changing builds." \
             --prerelease \
             --target "${{ github.sha }}"
