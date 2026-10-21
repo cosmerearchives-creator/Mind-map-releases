@@ -52,7 +52,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "android-build-${{ github.run_number }}" The-Cosmere-Archives.apk \
-            --title "The Cosmere Archives v0.11.${{ github.run_number }}" \
+            --title "Archives of Arcanum v0.11.${{ github.run_number }}" \
             --notes "Signed release APK with update checking. The first transition from an old debug build may require uninstalling the debug app. Back up your research before changing builds." \
             --prerelease \
             --target "${{ github.sha }}"
